@@ -1,6 +1,7 @@
 const express = require('express');
 const Joi = require('@hapi/joi');       //  for validate data
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -44,6 +45,50 @@ router.post('/signup', (req, res, next) => {
                         res.send(userObj);
                     });
                 });
+            }
+        })
+    }else{
+        res.status(422);
+        next(result.error);
+    }
+});
+
+// POST /api/auth/login
+router.post('/login', (req, res, next) => {
+    const result = schema.validate(req.body);
+    if(!result.error){
+        User.findOne({username: req.body.username}, (err, user) => {
+            console.log(user);
+            if(user){
+                // There is already a user in the db with this username.
+                bcrypt.compare(req.body.password, user.password).then((result) => {
+                    if (result) {
+                        // they sent us right password.
+                        const payload = {
+                            _id: user._id,
+                            username: user.username,
+                        };
+                        jwt.sign(payload, process.env.TOKEN_SECRET,{
+                            expiresIn: '1h',
+                        }, (err, token) => {
+                            if (err) {
+                                const error = new Error('Token Error !');
+                                res.status(422);
+                                next(error);
+                            } else {
+                               res.json({token}); 
+                            }
+                        });
+                    }else{
+                        const error = new Error('Wrong password! Please try again.');
+                        res.status(422);
+                        next(error);
+                    }
+                });
+            } else {
+                const error = new Error('We did not find this username in database.');
+                res.status(422);
+                next(error);
             }
         })
     }else{
