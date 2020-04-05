@@ -17,6 +17,25 @@ const schema = Joi.object({
     password: Joi.string().trim().min(5).required(),
 });
 
+const createTokenSendResponse = (user, res, next) => {
+    const payload = {
+        _id: user._id,
+        username: user.username,
+    };
+
+    jwt.sign(payload, process.env.TOKEN_SECRET,{
+        expiresIn: '1h',
+    }, (err, token) => {
+        if (err) {
+            const error = new Error('Token Error !');
+            res.status(422);
+            next(error);
+        } else {
+           res.json({token}); 
+        }
+    });
+}
+
 router.get('/', (req, res) => {
     res.json({
         message: 'selam',
@@ -38,12 +57,11 @@ router.post('/signup', (req, res, next) => {
             } else {
                 bcrypt.hash(req.body.password, 10, (err, hash) => {
                     const newUser = new User({username: req.body.username, password: hash});
+                    
                     newUser.save((err, user) => {
-                        const userObj = user.toJSON();
-                        // for security, delete password from json response.
-                        delete userObj.password;
-                        res.send(userObj);
+                        createTokenSendResponse(user, res, next);
                     });
+                    
                 });
             }
         })
@@ -64,21 +82,7 @@ router.post('/login', (req, res, next) => {
                 bcrypt.compare(req.body.password, user.password).then((result) => {
                     if (result) {
                         // they sent us right password.
-                        const payload = {
-                            _id: user._id,
-                            username: user.username,
-                        };
-                        jwt.sign(payload, process.env.TOKEN_SECRET,{
-                            expiresIn: '1h',
-                        }, (err, token) => {
-                            if (err) {
-                                const error = new Error('Token Error !');
-                                res.status(422);
-                                next(error);
-                            } else {
-                               res.json({token}); 
-                            }
-                        });
+                        createTokenSendResponse(user, res, next);
                     }else{
                         const error = new Error('Wrong password! Please try again.');
                         res.status(422);

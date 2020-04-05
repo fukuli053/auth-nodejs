@@ -7,6 +7,8 @@ require('dotenv').config();
 // Database Connection
 const db = require('./db/connection');
 
+//Auth Middleware
+const authMiddleware = require('./auth/middleware');
 //Auth Router
 const auth = require('./auth');
 
@@ -17,10 +19,12 @@ app.use(cors({
     origin: 'http://localhost:8080'
 }));
 app.use(express.json());
+app.use(authMiddleware.checkTokenSetUser);
 
 app.get('/', (req, res) => {
     res.json({
         message: "Hello !",
+        user: req.user,
     });
 });
 app.use('/api/auth', auth);

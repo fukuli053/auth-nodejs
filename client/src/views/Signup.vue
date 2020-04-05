@@ -112,10 +112,11 @@ export default {
           return response.json().then((error) => {
             throw new Error(error.message);
           });
-        }).then(() => {
+        }).then((result) => {
           setTimeout(() => {
+            localStorage.token = result.token;
             this.signingUp = false;
-            this.$router.push('/login');
+            this.$router.push('/dashboard');
           }, 1000);
         }).catch((error) => {
           setTimeout(() => {
